@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DanskSpot 🇩🇰</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;min-height:100vh;color:#fff;background:radial-gradient(circle at top,#183b66 0%,#0b1424 45%,#060b13 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+.wrap{width:100%;max-width:1000px}
+nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:70px}
+.logo{font-size:28px;font-weight:900;letter-spacing:-1px}.logo span{color:#ff334b}
+.navbtn{background:#ffffff12;border:1px solid #ffffff20;color:#fff;padding:10px 16px;border-radius:12px;cursor:pointer}
+.hero{text-align:center}.badge{display:inline-block;background:#ff334b22;border:1px solid #ff334b55;color:#ff7180;padding:8px 14px;border-radius:999px;font-weight:700;margin-bottom:20px}
+h1{font-size:clamp(52px,9vw,96px);line-height:.95;letter-spacing:-5px;margin-bottom:22px}h1 span{color:#ff334b}
+.sub{font-size:19px;color:#aebbd0;max-width:600px;margin:0 auto 34px;line-height:1.5}
+.start{border:0;background:#ff334b;color:#fff;font-size:20px;font-weight:800;padding:17px 38px;border-radius:15px;cursor:pointer;box-shadow:0 12px 35px #ff334b35;transition:.2s}.start:hover{transform:translateY(-2px);background:#ff4c60}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:75px}.card{background:#ffffff09;border:1px solid #ffffff12;border-radius:18px;padding:22px;text-align:center}.card b{display:block;font-size:28px;margin-bottom:7px}.card p{color:#91a0b7}
+.game{display:none;max-width:650px;margin:auto}.gamebox{background:#ffffff09;border:1px solid #ffffff15;border-radius:24px;padding:30px;text-align:center}
+.topline{display:flex;justify-content:space-between;color:#9eacc0;margin-bottom:25px}
+.disc{width:180px;height:180px;border-radius:50%;margin:20px auto 30px;background:conic-gradient(#222 0 25%,#111 25% 50%,#242424 50% 75%,#101010 75%);border:9px solid #080b10;box-shadow:0 0 0 5px #ffffff10;animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}.game h2{font-size:32px;margin-bottom:10px}.hint{color:#95a3b8;margin-bottom:22px}
+.answer{width:100%;padding:15px;border-radius:12px;border:1px solid #ffffff18;background:#060b13;color:#fff;font-size:17px;margin-bottom:12px}
+.actions{display:flex;gap:10px}.actions button{flex:1;padding:14px;border-radius:12px;border:0;font-weight:800;cursor:pointer}.guess{background:#ff334b;color:#fff}.skip{background:#ffffff12;color:#fff}
+.back{margin-top:18px;background:none;border:0;color:#8e9caf;cursor:pointer}.feedback{min-height:28px;margin:15px 0;font-weight:800}
+@media(max-width:650px){.cards{grid-template-columns:1fr}nav{margin-bottom:45px}h1{letter-spacing:-3px}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><div class="logo">Dansk<span>Spot</span> 🇩🇰</div><button class="navbtn" onclick="showGame()">🎵 Spil</button></nav>
+
+<section id="home" class="hero">
+<div class="badge">🇩🇰 Den danske sangquiz</div>
+<h1>Gæt sangen.<br><span>Slå din score.</span></h1>
+<p class="sub">Hvor hurtigt kan du genkende en dansk sang? Start med et kort klip og se, om du kan gætte den før alle andre.</p>
+<button class="start" onclick="showGame()">Start spillet →</button>
+<div class="cards"><div class="card"><b>🎧</b><p>Gæt ud fra et kort klip</p></div><div class="card"><b>🏆</b><p>Få point for hurtige svar</p></div><div class="card"><b>🔥</b><p>Lav din egen streak</p></div></div>
+</section>
+
+<section id="game" class="game">
+<div class="gamebox">
+<div class="topline"><span id="round">Sang 1 / 5</span><span>⭐ <b id="score">0</b> point</span></div>
+<div id="playerWrap" style="display:none;margin:20px auto;max-width:560px">
+<iframe id="player" width="100%" height="315" src="" title="YouTube musikafspiller"
+style="border:0;border-radius:14px;max-width:100%" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
+<div class="disc" id="disc"></div>
+<h2 id="title">Klar til at gætte?</h2>
+<p class="hint" id="hint">Tryk på ▶ Afspil sang for at høre den.</p>
+<button class="start" id="play" onclick="playClip()">▶ Afspil sang</button>
+<div style="height:15px"></div>
+<input class="answer" placeholder="Skriv sangens titel..." id="answer" autocomplete="off">
+<div class="actions"><button class="guess" onclick="guess()">Gæt</button><button class="skip" onclick="skip()">Spring over</button></div>
+<div class="feedback" id="feedback"></div>
+<button class="back" onclick="showHome()">← Tilbage til forsiden</button>
+</div></section>
+</div>
+
+<script>
+const songs = [
+ {name:"STOR MAND", artist:"Tobias Rahim & Andreas Odbjerg", video:"HfmWPfqyYyY"},
+ {name:"Knokler Hårdt", artist:"Gilli", video:"RRLLPavaSwo"},
+ {name:"Gode dage, gode drinks", artist:"Lamin", video:"mO85AjfGVUs"}
+];
+let round=0, score=0;
+
+function showGame(){
+ document.getElementById('home').style.display='none';
+ document.getElementById('game').style.display='block';
+ startRound();
+}
+function showHome(){
+ document.getElementById('game').style.display='none';
+ document.getElementById('home').style.display='block';
+ stopClip();
+}
+function stopClip(){
+ const player=document.getElementById('player');
+ player.src='';
+ document.getElementById('playerWrap').style.display='none';
+ document.getElementById('disc').style.display='block';
+}
+function startRound(){
+ const s=songs[round];
+ document.getElementById('round').textContent=`Sang ${round+1} / ${songs.length}`;
+ document.getElementById('score').textContent=score;
+ document.getElementById('answer').value='';
+ document.getElementById('feedback').textContent='';
+ document.getElementById('title').textContent='Klar til at gætte?';
+ document.getElementById('hint').textContent='Tryk på ▶ Afspil sang for at høre den.';
+ document.getElementById('play').disabled=false;
+ document.getElementById('play').style.display='inline-block';
+ document.getElementById('answer').style.display='block';
+ document.querySelector('.actions').style.display='flex';
+ stopClip();
+}
+function playClip(){
+ const s=songs[round];
+ if(!s.video){
+   document.getElementById('hint').textContent='Denne sang mangler stadig en bekræftet YouTube-video. Du kan springe over, eller vi kan sætte den ind bagefter.';
+   return;
+ }
+ document.getElementById('disc').style.display='none';
+ document.getElementById('playerWrap').style.display='block';
+ document.getElementById('player').src='https://www.youtube-nocookie.com/embed/'+s.video+'?autoplay=1&rel=0';
+ document.getElementById('hint').textContent='Afspil sangen i videoen, og gæt titlen 🎧';
+}
+function normalize(s){return s.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+function guess(){
+ const input=document.getElementById('answer').value.trim();
+ const correct=songs[round].name;
+ if(!input){document.getElementById('feedback').textContent='Skriv et svar først 😄';return}
+ if(normalize(input)===normalize(correct)){
+   score+=100;
+   document.getElementById('feedback').textContent='✅ Rigtigt! +100 point';
+ }else{
+   document.getElementById('feedback').textContent='❌ Ikke helt. Det var '+correct+' af '+songs[round].artist+'.';
+ }
+ document.getElementById('score').textContent=score;
+ document.getElementById('title').textContent='Godt klaret!';
+ document.getElementById('play').disabled=true;
+ setTimeout(nextRound,1800);
+}
+function skip(){
+ document.getElementById('feedback').textContent='⏭️ Sprunget over. Det var '+songs[round].name+'.';
+ document.getElementById('play').disabled=true;
+ setTimeout(nextRound,1500);
+}
+function nextRound(){
+ stopClip();
+ round++;
+ if(round>=songs.length){
+   document.getElementById('round').textContent='Færdig!';
+   document.getElementById('title').textContent='🏆 Spillet er slut';
+   document.getElementById('hint').textContent='Din score blev '+score+' point.';
+   document.getElementById('play').style.display='none';
+   document.getElementById('answer').style.display='none';
+   document.querySelector('.actions').style.display='none';
+   return;
+ }
+ startRound();
+}
+</script>
+</body>
+</html>
